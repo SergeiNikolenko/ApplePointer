@@ -1541,9 +1541,13 @@ struct ApplePointerCoreTests {
     @Test("Burette3DTargetParser maps normalized Mol* piece tokens into Quartz HitTargets and rejects stale points")
     func burette3DTargetParserAndDragRelease() {
         let host = CGRect(x: 900, y: 80, width: 1000, height: 1000)
+        let makePieceClass = { (pieceId: String, shape: String, coords: [Int]) in
+            Burette3DTargetParser.tokenPrefix + ([pieceId, shape] + coords.map(String.init)).joined(separator: "-")
+        }
         // Water sphere circle at 50%..51.8%, 40%..41.8% -> (1400..1418, 480..498), 18x18
+        let waterClass = makePieceClass("abc123", "c", [5000, 4000, 5180, 4180])
         let water = Burette3DTargetParser.parse(
-            token: "buret-pt-v2-abc123-c-5000-4000-5180-4180",
+            token: waterClass,
             hostFrame: host,
             point: CGPoint(x: 1409, y: 489)
         )
@@ -1556,8 +1560,9 @@ struct ApplePointerCoreTests {
         #expect(water?.organicContour?.radii.count == OrganicContour.sampleCount)
 
         // Diagonal tilted bond/ribbon polygon contour (45-degree capsule hull) wraps along diagonal without outline
+        let diagonalClass = makePieceClass("diag9", "p", [2000, 3120, 2120, 3000, 2620, 3500, 2500, 3620])
         let diagonal = Burette3DTargetParser.parse(
-            token: "buret-pt-v2-diag9-p-2000-3120-2120-3000-2620-3500-2500-3620",
+            token: diagonalClass,
             hostFrame: host,
             point: CGPoint(x: 1131, y: 411)
         )
@@ -1571,7 +1576,7 @@ struct ApplePointerCoreTests {
 
         // Distant/stale cursor must be rejected
         let stale = Burette3DTargetParser.parse(
-            token: "buret-pt-v2-abc123-c-5000-4000-5180-4180",
+            token: waterClass,
             hostFrame: host,
             point: CGPoint(x: 1600, y: 700)
         )
