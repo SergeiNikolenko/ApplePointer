@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: applepointer-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and Publish Release
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve version
+        id: version
+        run: |
+          version="$(cat VERSION)"
+          tag="v${version}"
+          if git rev-parse --verify "refs/tags/${tag}" > /dev/null 2>&1; then
+            echo "::error::Release ${tag} already exists. Bump VERSION first."
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        run: swift test
+
+      - name: Build universal app
+        env:
+          APPLEPOINTER_UNIVERSAL: "1"
+          SIGN_IDENTITY: "-"
+        run: ./scripts/build-app.sh
+
+      - name: Package DMG & ZIP
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          ditto -c -k --keepParent build/ApplePointer.app "ApplePointer-${version}.zip"
+          ./scripts/create-dmg.sh build/ApplePointer.app "ApplePointer-${version}.dmg"
+          shasum -a 256 "ApplePointer-${version}.zip" > "ApplePointer-${version}.zip.sha256"
+          shasum -a 256 "ApplePointer-${version}.dmg" > "ApplePointer-${version}.dmg.sha256"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "ApplePointer-${version}.dmg" "ApplePointer-${version}.zip" \
+            "ApplePointer-${version}.dmg.sha256" "ApplePointer-${version}.zip.sha256" \
+            --target "$GITHUB_SHA" \
+            --title "ApplePointer ${version}" \
+            --generate-notes
