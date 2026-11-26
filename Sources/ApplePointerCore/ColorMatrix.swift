@@ -151,6 +151,23 @@ public struct PointerColorMatrix: Equatable, Sendable {
         )
     }
 
+    /// Adjusts snapped highlight contrast cleanly across light and dark backgrounds.
+    /// contrast spans 0.50...2.00 (plus optional high-contrast headroom), where 0.50
+    /// preserves the subtle stock overlay matrix and 1.00 gives a crisper default highlight.
+    public func applyingHighlightContrast(isDarkBackground: Bool, contrast: Float) -> PointerColorMatrix {
+        let clamped = max(0.50, min(2.40, contrast))
+        let factor = max(0.0, (clamped - 0.50) / 0.50)
+        guard factor > 0.001 else { return self }
+        let rgbShift: Float = (isDarkBackground ? 0.080 : -0.055) * factor
+        let alphaShift: Float = 0.140 * factor
+        return PointerColorMatrix(
+            m11, m12, m13, m14, m15 + rgbShift,
+            m21, m22, m23, m24, m25 + rgbShift,
+            m31, m32, m33, m34, m35 + rgbShift,
+            m41, m42, m43, m44, m45 + alphaShift
+        )
+    }
+
     public func asNSValue() -> NSValue {
         var copy = self
         return NSValue(bytes: &copy, objCType: "{CAColorMatrix=ffffffffffffffffffff}")

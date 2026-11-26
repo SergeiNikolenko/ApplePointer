@@ -491,6 +491,8 @@ public final class PointerEngine: @unchecked Sendable {
             : (configuration.highContrast
                 ? ApplePointerConstants.Material.materialAlphaSmallItemDarkHighContrast
                 : ApplePointerConstants.Material.materialAlphaSmallItemDark)
+        let highlightContrast = PointerConfiguration.clampHighlightContrast(configuration.highlightContrast)
+        let highlightContrastShift = (highlightContrast - 0.50) * 0.22
 
         if !isResizing && !isCrosshair && !isSpecialCursor && (systemIBeamActive || activeTarget?.kind == .beam) {
             isSnapped = true
@@ -575,9 +577,9 @@ public final class PointerEngine: @unchecked Sendable {
                 // Keep Liquid Glass object highlights crisp & clearly legible (never dimmer than the free dot)
                 if target.suppressOutline {
                     // Seamless borderless embedding for 3D molecular pieces (clean optical veil, never muddy)
-                    targetIntensity = min(0.76, flexBase + (configuration.highContrast ? 0.22 : 0.10))
+                    targetIntensity = max(0.22, min(0.88, flexBase + (configuration.highContrast ? 0.20 : 0.08) + highlightContrastShift * 0.80))
                 } else {
-                    targetIntensity = min(0.88, flexBase + (configuration.highContrast ? 0.28 : 0.18))
+                    targetIntensity = max(0.24, min(0.96, flexBase + (configuration.highContrast ? 0.26 : 0.16) + highlightContrastShift))
                 }
 
             case .menuItem:
@@ -590,7 +592,8 @@ public final class PointerEngine: @unchecked Sendable {
                 mappedSlip = .zero
                 // Native macOS menus already draw their own selection pill; keep our overlay
                 // subtle so the pointer morphs cleanly into the row without washing out text.
-                targetIntensity = configuration.highContrast ? 0.28 : (effectiveDarkBackground ? 0.20 : 0.18)
+                let baseMenuIntensity: CGFloat = configuration.highContrast ? 0.26 : (effectiveDarkBackground ? 0.18 : 0.16)
+                targetIntensity = max(0.12, min(0.48, baseMenuIntensity + highlightContrastShift * 0.45))
 
             case .lift:
                 isSnapped = true
@@ -621,7 +624,7 @@ public final class PointerEngine: @unchecked Sendable {
                     isDarkBackground: effectiveDarkBackground,
                     visualIntensity: smallItemBaseIntensity
                 )
-                targetIntensity = min(0.82, liftFlex + (configuration.highContrast ? 0.22 : 0.10))
+                targetIntensity = max(0.24, min(0.94, liftFlex + (configuration.highContrast ? 0.20 : 0.10) + highlightContrastShift * 0.90))
 
             case .hover:
                 isSnapped = true
@@ -645,7 +648,7 @@ public final class PointerEngine: @unchecked Sendable {
                     isDarkBackground: effectiveDarkBackground,
                     visualIntensity: smallItemBaseIntensity
                 )
-                targetIntensity = min(0.86, hoverFlex + (configuration.highContrast ? 0.26 : 0.18))
+                targetIntensity = max(0.24, min(0.95, hoverFlex + (configuration.highContrast ? 0.24 : 0.16) + highlightContrastShift))
 
             case .scrollThumb:
                 isSnapped = true
@@ -655,7 +658,8 @@ public final class PointerEngine: @unchecked Sendable {
                 targetRect = target.rect
                 targetCornerRadius = min(target.rect.width, target.rect.height) * 0.5
                 mappedSlip = CGPoint(x: max(0.0, min(1.0, target.slipX)), y: max(0.0, min(1.0, target.slipY)))
-                targetIntensity = configuration.highContrast ? 0.65 : (effectiveDarkBackground ? 0.48 : 0.42)
+                let baseScrollIntensity: CGFloat = configuration.highContrast ? 0.62 : (effectiveDarkBackground ? 0.46 : 0.40)
+                targetIntensity = max(0.25, min(0.88, baseScrollIntensity + highlightContrastShift * 0.75))
             }
         } else {
             isSnapped = false
@@ -835,9 +839,18 @@ public final class PointerEngine: @unchecked Sendable {
 
         let blendedMatrix: PointerColorMatrix
         if isSnapped && !isBeam {
+            let effectiveHighlightContrast = Float(highlightContrast + (configuration.highContrast ? 0.30 : 0.0))
+            let lightOverlay = PointerColorMatrix.contentOverlayLightBackground.applyingHighlightContrast(
+                isDarkBackground: false,
+                contrast: effectiveHighlightContrast
+            )
+            let darkOverlay = PointerColorMatrix.contentOverlayDarkBackground.applyingHighlightContrast(
+                isDarkBackground: true,
+                contrast: effectiveHighlightContrast
+            )
             let baseSnapped = PointerColorMatrix.lerp(
-                .contentOverlayLightBackground,
-                .contentOverlayDarkBackground,
+                lightOverlay,
+                darkOverlay,
                 t: Float(lumaMix.value)
             )
             blendedMatrix = baseSnapped.applyingPressedContrast(

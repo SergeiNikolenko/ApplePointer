@@ -83,6 +83,8 @@ public struct PointerConfiguration: Codable, Equatable, Sendable {
     public static let dotSizeRange: ClosedRange<CGFloat> = 0.50...2.00
     public static let mouseSizeRange: ClosedRange<CGFloat> = 1.00...2.00
     public static let dotIntensityRange: ClosedRange<CGFloat> = 0.50...1.50
+    public static let highlightContrastRange: ClosedRange<CGFloat> = 0.50...2.00
+    public static let defaultHighlightContrast: CGFloat = 1.00
     public static let autohideDurationRange: ClosedRange<TimeInterval> = 1.0...15.0
     public static let defaultExcludedBundleIDs: [String] = [
         "com.apple.ScreenSharing",
@@ -101,6 +103,7 @@ public struct PointerConfiguration: Codable, Equatable, Sendable {
     public var dotLiquidGlassEnabled: Bool
     public var dotSizeMultiplier: CGFloat
     public var dotIntensity: CGFloat
+    public var highlightContrast: CGFloat
     public var mouseSizeMultiplier: CGFloat
     public var magnetismEnabled: Bool
     public var inertiaEnabled: Bool
@@ -157,6 +160,10 @@ public struct PointerConfiguration: Codable, Equatable, Sendable {
         max(dotIntensityRange.lowerBound, min(dotIntensityRange.upperBound, value))
     }
 
+    public static func clampHighlightContrast(_ value: CGFloat) -> CGFloat {
+        max(highlightContrastRange.lowerBound, min(highlightContrastRange.upperBound, value))
+    }
+
     public static func clampAutohideDuration(_ value: TimeInterval) -> TimeInterval {
         max(autohideDurationRange.lowerBound, min(autohideDurationRange.upperBound, value))
     }
@@ -168,6 +175,7 @@ public struct PointerConfiguration: Codable, Equatable, Sendable {
         dotLiquidGlassEnabled: Bool? = nil,
         dotSizeMultiplier: CGFloat = 1.0,
         dotIntensity: CGFloat = 1.0,
+        highlightContrast: CGFloat = PointerConfiguration.defaultHighlightContrast,
         mouseSizeMultiplier: CGFloat = 1.0,
         magnetismEnabled: Bool = true,
         inertiaEnabled: Bool = true,
@@ -190,6 +198,7 @@ public struct PointerConfiguration: Codable, Equatable, Sendable {
         self.dotLiquidGlassEnabled = dotLiquidGlassEnabled ?? (materialPreset == .liquidGlass)
         self.dotSizeMultiplier = Self.clampDotSize(dotSizeMultiplier)
         self.dotIntensity = Self.clampDotIntensity(dotIntensity)
+        self.highlightContrast = Self.clampHighlightContrast(highlightContrast)
         self.mouseSizeMultiplier = Self.clampMouseSize(mouseSizeMultiplier)
         self.magnetismEnabled = magnetismEnabled
         self.inertiaEnabled = inertiaEnabled
@@ -214,6 +223,7 @@ public struct PointerConfiguration: Codable, Equatable, Sendable {
         case dotLiquidGlassEnabled
         case dotSizeMultiplier
         case dotIntensity
+        case highlightContrast
         case mouseSizeMultiplier
         case pointerSizeMultiplier
         case magnetismEnabled
@@ -241,6 +251,7 @@ public struct PointerConfiguration: Codable, Equatable, Sendable {
         let legacySize = try c.decodeIfPresent(CGFloat.self, forKey: .pointerSizeMultiplier) ?? 1.0
         self.dotSizeMultiplier = Self.clampDotSize(try c.decodeIfPresent(CGFloat.self, forKey: .dotSizeMultiplier) ?? legacySize)
         self.dotIntensity = Self.clampDotIntensity(try c.decodeIfPresent(CGFloat.self, forKey: .dotIntensity) ?? 1.0)
+        self.highlightContrast = Self.clampHighlightContrast(try c.decodeIfPresent(CGFloat.self, forKey: .highlightContrast) ?? Self.defaultHighlightContrast)
         self.mouseSizeMultiplier = Self.clampMouseSize(try c.decodeIfPresent(CGFloat.self, forKey: .mouseSizeMultiplier) ?? legacySize)
         self.magnetismEnabled = try c.decodeIfPresent(Bool.self, forKey: .magnetismEnabled) ?? true
         self.inertiaEnabled = try c.decodeIfPresent(Bool.self, forKey: .inertiaEnabled) ?? true
@@ -266,6 +277,7 @@ public struct PointerConfiguration: Codable, Equatable, Sendable {
         try c.encode(dotLiquidGlassEnabled, forKey: .dotLiquidGlassEnabled)
         try c.encode(dotSizeMultiplier, forKey: .dotSizeMultiplier)
         try c.encode(dotIntensity, forKey: .dotIntensity)
+        try c.encode(highlightContrast, forKey: .highlightContrast)
         try c.encode(mouseSizeMultiplier, forKey: .mouseSizeMultiplier)
         try c.encode(magnetismEnabled, forKey: .magnetismEnabled)
         try c.encode(inertiaEnabled, forKey: .inertiaEnabled)

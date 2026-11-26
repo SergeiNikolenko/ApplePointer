@@ -363,13 +363,13 @@ struct ApplePointerCoreTests {
         for i in 1...180 {
             s = engine.step(dt: 1.0 / 120.0, timestamp: Double(i) / 120.0)
         }
-        #expect(abs(s.intensity - 0.63) < 0.02)
+        #expect(abs(s.intensity - 0.72) < 0.02)
 
         engine.updateBackgroundLuma(0.2)
         for i in 181...360 {
             s = engine.step(dt: 1.0 / 120.0, timestamp: Double(i) / 120.0)
         }
-        #expect(abs(s.intensity - 0.58) < 0.02)
+        #expect(abs(s.intensity - 0.67) < 0.02)
     }
 
     @Test("Specular highlight alpha and scale follow standard and prominent multipliers")
@@ -769,8 +769,12 @@ struct ApplePointerCoreTests {
         #expect(snappedState.isSnapped)
         #expect(snappedState.arrowBlend < 0.02)
         #expect(abs(snappedState.cornerRadius - 18.0) < 0.2)
-        #expect(abs(snappedState.colorMatrix.m15 - PointerColorMatrix.contentOverlayDarkBackground.m15) < 0.02)
-        #expect(abs(snappedState.colorMatrix.m45 - PointerColorMatrix.contentOverlayDarkBackground.m45) < 0.02)
+        let expectedDefaultDark = PointerColorMatrix.contentOverlayDarkBackground.applyingHighlightContrast(
+            isDarkBackground: true,
+            contrast: Float(PointerConfiguration.defaultHighlightContrast)
+        )
+        #expect(abs(snappedState.colorMatrix.m15 - expectedDefaultDark.m15) < 0.02)
+        #expect(abs(snappedState.colorMatrix.m45 - expectedDefaultDark.m45) < 0.02)
 
         // Enabling Increase Contrast boosts snapped highlight intensity cleanly
         engine.configuration.highContrast = true
@@ -800,7 +804,7 @@ struct ApplePointerCoreTests {
         }
         #expect(menuState.isSnapped)
         #expect(abs(menuState.center.x - 130.0) < 0.2) // strictly centered, zero edge overflow
-        #expect(menuState.intensity < 0.22)
+        #expect(menuState.intensity < 0.26)
 
         // Screenshot crosshair overrides snapping and morphs cleanly
         engine.updateSystemCrosshair(true)
@@ -868,6 +872,63 @@ struct ApplePointerCoreTests {
         }
         #expect(abs(subtleState.intensity - (0.74 * 0.60)) < 0.02)
         #expect(subtleState.dotVividnessBoost < 0.01)
+    }
+
+    @Test("Highlight contrast slider scales snapped intensity and color matrix cleanly on light and dark backgrounds")
+    func highlightContrastSliderScalesSnappedMaterial() {
+        var cfg = PointerConfiguration(highlightContrast: 0.20)
+        #expect(abs(cfg.highlightContrast - PointerConfiguration.highlightContrastRange.lowerBound) < 1e-6)
+        cfg = PointerConfiguration(highlightContrast: 3.50)
+        #expect(abs(cfg.highlightContrast - PointerConfiguration.highlightContrastRange.upperBound) < 1e-6)
+
+        // Legacy config JSON without highlightContrast decodes to defaultHighlightContrast (1.0)
+        let legacyJSON = Data(#"{"enabled":true}"#.utf8)
+        let legacyDecoded = try! JSONDecoder().decode(PointerConfiguration.self, from: legacyJSON)
+        #expect(abs(legacyDecoded.highlightContrast - PointerConfiguration.defaultHighlightContrast) < 1e-6)
+
+        let btn = HitTarget(
+            id: "contrast-btn",
+            rect: CGRect(x: 80, y: 82, width: 60, height: 34),
+            cornerRadius: 10.0,
+            kind: .highlight,
+            slipX: 0.099,
+            slipY: 0.09,
+            maxSlipPoints: 6.0,
+            overlayEffectStyle: .standard
+        )
+
+        func settle(contrast: CGFloat, dark: Bool) -> PointerRenderState {
+            let engine = PointerEngine(
+                initialPosition: CGPoint(x: 110, y: 99),
+                timestamp: 0.0,
+                configuration: PointerConfiguration(highlightContrast: contrast)
+            )
+            engine.updateBackgroundLuma(dark ? 0.15 : 0.90)
+            engine.updateHitTarget(btn, at: 0.0)
+            var st = engine.step(dt: 1.0 / 120.0, timestamp: 0.01)
+            for i in 1...180 {
+                st = engine.step(dt: 1.0 / 120.0, timestamp: Double(i) / 120.0)
+            }
+            return st
+        }
+
+        let darkLow = settle(contrast: 0.50, dark: true)
+        let darkDefault = settle(contrast: 1.00, dark: true)
+        let darkHigh = settle(contrast: 1.80, dark: true)
+        #expect(darkDefault.intensity > darkLow.intensity + 0.08)
+        #expect(darkHigh.intensity > darkDefault.intensity + 0.12)
+        #expect(darkDefault.colorMatrix.m15 > darkLow.colorMatrix.m15 + 0.05)
+        #expect(darkDefault.colorMatrix.m45 > darkLow.colorMatrix.m45 + 0.10)
+        #expect(darkHigh.colorMatrix.m15 > darkDefault.colorMatrix.m15 + 0.08)
+
+        let lightLow = settle(contrast: 0.50, dark: false)
+        let lightDefault = settle(contrast: 1.00, dark: false)
+        let lightHigh = settle(contrast: 1.80, dark: false)
+        #expect(lightDefault.intensity > lightLow.intensity + 0.08)
+        #expect(lightHigh.intensity > lightDefault.intensity + 0.12)
+        #expect(lightDefault.colorMatrix.m15 < lightLow.colorMatrix.m15 - 0.03)
+        #expect(lightDefault.colorMatrix.m45 > lightLow.colorMatrix.m45 + 0.10)
+        #expect(lightHigh.colorMatrix.m15 < lightDefault.colorMatrix.m15 - 0.05)
     }
 
     @Test("Constrained vertical I-beam tracks X 1:1 while magnetically aligning Y to text line center")

@@ -97,6 +97,22 @@ struct MenuBarPopoverView: View {
                 Slider(value: activeSizeBinding, in: activeSizeRange, step: 0.05)
             }
 
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Highlight Contrast")
+                        .font(.system(size: 13, weight: .medium))
+                    Spacer()
+                    Text("\(Int(round(controller.configuration.highlightContrast * 100.0)))%")
+                        .font(.system(size: 12.5).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                Slider(
+                    value: $controller.configuration.highlightContrast,
+                    in: PointerConfiguration.highlightContrastRange,
+                    step: 0.05
+                )
+            }
+
             Divider()
 
             VStack(spacing: 10) {

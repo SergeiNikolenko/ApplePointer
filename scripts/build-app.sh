@@ -22,8 +22,8 @@ else
     ARCH_FLAGS=(--arch "$(uname -m)")
 fi
 
-swift build -c release "${ARCH_FLAGS[@]}" "${EXTRA_SWIFT_FLAGS[@]}"
-BIN_DIR=$(swift build -c release "${ARCH_FLAGS[@]}" "${EXTRA_SWIFT_FLAGS[@]}" --show-bin-path)
+swift build -c release "${ARCH_FLAGS[@]}" ${EXTRA_SWIFT_FLAGS[@]+" ${EXTRA_SWIFT_FLAGS[@]}"}
+BIN_DIR=$(swift build -c release "${ARCH_FLAGS[@]}" ${EXTRA_SWIFT_FLAGS[@]+" ${EXTRA_SWIFT_FLAGS[@]}"} --show-bin-path)
 
 STAGING=$(mktemp -d)
 cleanup() {

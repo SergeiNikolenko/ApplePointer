@@ -27,7 +27,7 @@ ApplePointer lives quietly in the menu bar (`⌃⌥⌘P` toggles it on or off an
 
 ![ApplePointer Settings in Light and Dark Mode](docs/assets/settings-ui.png)
 
-- **Pointer**: Dot or Arrow style, size slider, Liquid Glass / Classic material, specular highlight, dot opacity, optional center dot, increase contrast, Shake to Find, and Accessibility Zoom scaling.
+- **Pointer**: Dot or Arrow style, size slider, Liquid Glass / Classic material, specular highlight, highlight contrast slider, dot opacity, optional center dot, increase contrast, Shake to Find, and Accessibility Zoom scaling.
 - **Behavior**: Magnetic Snap, Fast-Flight Inertia, Smooth Typing Caret, Hide Pointer While Typing, Auto-Hide When Idle, native resize cursor toggle, and custom app tool cursor passthrough.
 - **Apps**: Launch at Login and per-app exclusion list (Remote Desktop / screen-sharing apps are excluded by default).
 
@@ -35,7 +35,7 @@ ApplePointer lives quietly in the menu bar (`⌃⌥⌘P` toggles it on or off an
 
 Download the Universal (`arm64` + `x86_64`) DMG or ZIP from [Releases](https://github.com/SergeiNikolenko/ApplePointer/releases/latest) (requires **macOS 14 Sonoma or later**):
 
-1. Open `ApplePointer-1.0.0.dmg` and drag **ApplePointer.app** to `/Applications`.
+1. Open `ApplePointer-1.1.0.dmg` and drag **ApplePointer.app** to `/Applications`.
 2. Because this open-source build is ad-hoc signed rather than Apple notarized, clear the quarantine attribute if macOS blocks the first launch:
 
 ```bash

@@ -130,7 +130,7 @@ struct SettingsRootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 540, height: 500)
+        .frame(width: 540, height: 536)
     }
 
     private var headerBar: some View {
@@ -235,6 +235,20 @@ struct SettingsRootView: View {
                     (controller.configuration.liquidGlassEnabled || (!isMouseStyle && controller.configuration.dotLiquidGlassEnabled)) ? "Glass Sheen & Rim" : "Highlight Specular",
                     isOn: $controller.configuration.specularEnabled
                 )
+                LabeledContent("Highlight Contrast") {
+                    HStack(spacing: 10) {
+                        Slider(
+                            value: $controller.configuration.highlightContrast,
+                            in: PointerConfiguration.highlightContrastRange,
+                            step: 0.05
+                        )
+                        .frame(width: 180)
+                        Text("\(Int(round(controller.configuration.highlightContrast * 100.0)))%")
+                            .font(.body.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .frame(width: 50, alignment: .trailing)
+                    }
+                }
                 if !isMouseStyle {
                     LabeledContent("Dot Opacity") {
                         HStack(spacing: 10) {
@@ -393,7 +407,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
         let host = NSHostingController(rootView: SettingsRootView(controller: pointerController))
         let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 500),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 536),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
