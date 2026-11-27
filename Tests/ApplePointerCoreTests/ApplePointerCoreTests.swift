@@ -931,6 +931,36 @@ struct ApplePointerCoreTests {
         #expect(lightHigh.colorMatrix.m15 < lightDefault.colorMatrix.m15 - 0.05)
     }
 
+    @Test("Circular app buttons (e.g. Calculator 48x48 keypad) and AXHelpButton resolve to exact circle radius")
+    func circularCalculatorAndHelpButtonCornerRadius() {
+        let calcKey = CGRect(x: 200, y: 460, width: 48, height: 48)
+        let calcRadius = ElementGeometryResolver.resolveCornerRadius(
+            visualRect: calcKey,
+            role: "AXButton",
+            subrole: "",
+            isInsideToolbar: false,
+            isSidebarRow: false,
+            isCircularCloseOrDelete: false,
+            isNotchButton: false,
+            isCircularAppControl: true,
+            domRadius: nil
+        )
+        #expect(abs(calcRadius - 24.0) < 1e-6)
+
+        let helpBtn = CGRect(x: 1119, y: 571, width: 24, height: 24)
+        let helpRadius = ElementGeometryResolver.resolveCornerRadius(
+            visualRect: helpBtn,
+            role: "AXButton",
+            subrole: "AXHelpButton",
+            isInsideToolbar: false,
+            isSidebarRow: false,
+            isCircularCloseOrDelete: false,
+            isNotchButton: false,
+            domRadius: nil
+        )
+        #expect(abs(helpRadius - 12.0) < 1e-6)
+    }
+
     @Test("Constrained vertical I-beam tracks X 1:1 while magnetically aligning Y to text line center")
     func constrainedVerticalIBeamLineMagnetism() {
         let engine = PointerEngine(initialPosition: CGPoint(x: 200, y: 106), timestamp: 0.0)

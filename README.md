@@ -35,7 +35,7 @@ ApplePointer lives quietly in the menu bar (`⌃⌥⌘P` toggles it on or off an
 
 Download the Universal (`arm64` + `x86_64`) DMG or ZIP from [Releases](https://github.com/SergeiNikolenko/ApplePointer/releases/latest) (requires **macOS 14 Sonoma or later**):
 
-1. Open `ApplePointer-1.1.0.dmg` and drag **ApplePointer.app** to `/Applications`.
+1. Open `ApplePointer-1.1.1.dmg` and drag **ApplePointer.app** to `/Applications`.
 2. Because this open-source build is ad-hoc signed rather than Apple notarized, clear the quarantine attribute if macOS blocks the first launch:
 
 ```bash

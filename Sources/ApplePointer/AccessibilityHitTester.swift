@@ -20,6 +20,7 @@ final class AccessibilityHitTester: @unchecked Sendable {
     private var configuredManualAXPIDs: Set<pid_t> = []
     private var notificationCenterPIDCache: [pid_t: Bool] = [:]
     private var codexPIDCache: [pid_t: Bool] = [:]
+    private var calculatorPIDCache: [pid_t: Bool] = [:]
     private var windowManagerPIDCache: [pid_t: Bool] = [:]
 
     private let systemWideElement: AXUIElement
@@ -473,6 +474,7 @@ final class AccessibilityHitTester: @unchecked Sendable {
         var pid: pid_t = 0
         var isInsideNotificationCenter = false
         var isInsideCodex = false
+        var isInsideCalculator = false
         var isInsideWindowManager = false
         if AXUIElementGetPid(leaf, &pid) == .success {
             if pid == ownPID {
@@ -485,6 +487,7 @@ final class AccessibilityHitTester: @unchecked Sendable {
             )
             isInsideNotificationCenter = isNotificationCenterProcess(pid)
             isInsideCodex = isCodexProcess(pid)
+            isInsideCalculator = isCalculatorProcess(pid)
             isInsideWindowManager = isWindowManagerProcess(pid)
         }
 
@@ -562,6 +565,7 @@ final class AccessibilityHitTester: @unchecked Sendable {
                     isInsideDesktop: isInsideDesktop,
                     isInsideNotificationCenter: isInsideNotificationCenter,
                     isInsideCodex: isInsideCodex,
+                    isInsideCalculator: isInsideCalculator,
                     allowExplicitPressFallback: false
                 ) {
                     let isLargeCardTarget = target.id.hasPrefix("nc-")
@@ -589,6 +593,7 @@ final class AccessibilityHitTester: @unchecked Sendable {
                     isInsideDesktop: isInsideDesktop,
                     isInsideNotificationCenter: isInsideNotificationCenter,
                     isInsideCodex: isInsideCodex,
+                    isInsideCalculator: isInsideCalculator,
                     allowExplicitPressFallback: true
                 ) {
                     passiveFallbackTarget = fallback
@@ -619,7 +624,8 @@ final class AccessibilityHitTester: @unchecked Sendable {
                 initialInsideToolbar: isInsideToolbar,
                 initialInsideDesktop: isInsideDesktop,
                 isInsideNotificationCenter: isInsideNotificationCenter,
-                isInsideCodex: isInsideCodex
+                isInsideCodex: isInsideCodex,
+                isInsideCalculator: isInsideCalculator
             ) {
                 if let card = fallbackCardTarget {
                     let descArea = descended.rect.width * descended.rect.height
@@ -763,6 +769,25 @@ final class AccessibilityHitTester: @unchecked Sendable {
         return isCodex
     }
 
+    private func isCalculatorProcess(_ pid: pid_t) -> Bool {
+        guard pid > 0 else { return false }
+        lock.lock()
+        if let cached = calculatorPIDCache[pid] {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+        let bid = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? ""
+        let isCalc = bid == "com.apple.calculator"
+        lock.lock()
+        if calculatorPIDCache.count > 64 {
+            calculatorPIDCache.removeAll(keepingCapacity: true)
+        }
+        calculatorPIDCache[pid] = isCalc
+        lock.unlock()
+        return isCalc
+    }
+
     private func isWindowManagerProcess(_ pid: pid_t) -> Bool {
         guard pid > 0 else { return false }
         lock.lock()
@@ -893,7 +918,8 @@ final class AccessibilityHitTester: @unchecked Sendable {
         initialInsideToolbar: Bool,
         initialInsideDesktop: Bool,
         isInsideNotificationCenter: Bool = false,
-        isInsideCodex: Bool = false
+        isInsideCodex: Bool = false,
+        isInsideCalculator: Bool = false
     ) -> HitTarget? {
         let startTime = CACurrentMediaTime()
         let maxChecked = 1200
@@ -980,6 +1006,7 @@ final class AccessibilityHitTester: @unchecked Sendable {
                        isInsideDesktop: nextInDesktop,
                        isInsideNotificationCenter: isInsideNotificationCenter,
                        isInsideCodex: isInsideCodex,
+                       isInsideCalculator: isInsideCalculator,
                        allowExplicitPressFallback: isCandidatePassive
                    ) {
                     // Never let a passive child wrapper inside an AXTextArea/AXTextField overwrite an active .beam target
@@ -1094,6 +1121,7 @@ final class AccessibilityHitTester: @unchecked Sendable {
         isInsideDesktop: Bool = false,
         isInsideNotificationCenter: Bool = false,
         isInsideCodex: Bool = false,
+        isInsideCalculator: Bool = false,
         allowExplicitPressFallback: Bool
     ) -> HitTarget? {
         if let enabled = prefetchedEnabled ?? boolAttribute(elem, kAXEnabledAttribute), !enabled {
@@ -1547,6 +1575,11 @@ final class AccessibilityHitTester: @unchecked Sendable {
             return keywords.contains { label.contains($0) || lowerID.contains($0) }
         }()
 
+        let isCalculatorKeypadButton = isInsideCalculator
+            && role == "AXButton"
+            && minDim >= 24.0 && maxDim <= 140.0
+            && !isInsideToolbar
+
         let domRadius = Self.resolvedDomCornerRadius(for: elem, visualRect: visualRect, parent: directParent)
         let cornerRadius = ElementGeometryResolver.resolveCornerRadius(
             visualRect: visualRect,
@@ -1556,6 +1589,7 @@ final class AccessibilityHitTester: @unchecked Sendable {
             isSidebarRow: isSidebarRowShape,
             isCircularCloseOrDelete: isCircularCloseOrDeleteButton,
             isNotchButton: isNotchButton,
+            isCircularAppControl: isCalculatorKeypadButton,
             domRadius: domRadius
         )
         let baseSlipCap: CGFloat = isSidebarRowShape ? 3.5 : (maxDim > 125.0 ? 5.0 : 8.0)

@@ -109,6 +109,7 @@ public enum ElementGeometryResolver {
         isSidebarRow: Bool,
         isCircularCloseOrDelete: Bool,
         isNotchButton: Bool,
+        isCircularAppControl: Bool = false,
         domRadius: CGFloat?
     ) -> CGFloat {
         let minDim = max(1.0, min(visualRect.width, visualRect.height))
@@ -122,12 +123,14 @@ public enum ElementGeometryResolver {
         // 1. Controls that are genuinely circular or full capsule pills on macOS/iPadOS
         if isNotchButton
             || isCircularCloseOrDelete
+            || isCircularAppControl
             || role == "AXSwitch"
             || role == "AXHandle"
             || role == "AXRulerMarker"
             || subrole == "AXSwitch"
             || subrole == "AXSegment"
             || subrole == "AXCloseButton"
+            || subrole == "AXHelpButton"
             || (role == "AXRadioButton" && subrole != "AXTabButton" && maxDim <= minDim * 1.25) {
             return maxR
         }
